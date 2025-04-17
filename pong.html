@@ -1,0 +1,208 @@
+<!-- websockets.html -->
+<body></body>
+<style>
+  html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Prevent scrollbars */
+  }
+  .background {
+    background-color: lightblue;
+    border: 1px solid black;
+    display: flex;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+  }
+  .ball {
+    background-color: red;
+    border-radius: 50%;
+    position: absolute;
+  }
+  .barPlayer1 {
+    background-color: black;
+    position: absolute;
+  }
+  .barPlayer2 {
+    background-color: black;
+    position: absolute;
+  }
+  .scoreboard {
+    position: absolute;
+    justify-content: center;
+    text-align: center;
+    font-family: Arial, sans-serif;
+    font-size: 24px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  }
+
+</style>
+<script defer>
+  // WINDOW SCALE FUNCTION
+  var scaleFactorX = window.innerHeight / 500;
+  var scaleFactorY = window.innerWidth / 500;
+  var score = [0, 0];
+  var playerNumber = 0;
+
+  // INIT VISUAL ELEMENTS
+  var backArrow = document.createElement("div");
+  var ball = document.createElement("div");
+  var barPlayer1 = document.createElement("div");
+  var barPlayer2 = document.createElement("div");
+  var background = document.createElement("div");
+  var scoreboard = document.createElement("div");
+
+  background.className = "background";
+  scoreboard.className = "scoreboard"
+  scoreboard.innerHTML = "Score: " + score[0] + " - " + score[1] + "<br>";
+  ball.className = "ball";
+  ball.id = "ball";
+  barPlayer1.className = "barPlayer1";
+  barPlayer1.id = "barPlayer1";
+  barPlayer2.className = "barPlayer2";
+  barPlayer2.id = "barPlayer2";
+
+  initSizesPositions();
+
+  document.body.appendChild(background)
+  document.body.appendChild(scoreboard);
+  document.body.appendChild(ball);
+  document.body.appendChild(barPlayer1);
+  document.body.appendChild(barPlayer2);
+
+  var start = null;
+  var socket;
+  var currentPath = window.location.pathname;
+  if (currentPath == "/pvp") {
+    socket = new WebSocket("ws://localhost:8080/pvp-game")
+  }
+  else if (currentPath == "/pvai") {
+    socket = new WebSocket("ws://localhost:8080/pvai-game")
+  }
+  else if (currentPath == "/aivai") {
+    socket = new WebSocket("ws://localhost:8080/aivai-game")
+  }
+
+  window.onbeforeunload = function () {
+    socket.close(); 
+  };
+
+  socket.onopen = function () {
+    output.innerHTML += "Status: Connected\n";
+    window.requestAnimationFrame(step);
+  };
+
+  socket.onmessage = function (e) {
+    var data = JSON.parse(e.data);
+    if (data.messageType === "gameState") {
+      window.requestAnimationFrame(function (timestamp) {
+        step(timestamp, data); // Pass the ball element as a parameter
+      });
+      if (data.score) {
+        score[0] = data.score[0];
+        score[1] = data.score[1];
+        scoreboard.innerHTML = "Score: " + score[0] + " - " + score[1] + "<br>";
+        setPosition(scoreboard, 225, 100);
+      }
+      if (!data.playing) {
+        scoreboard.innerHTML += playerNumberText(playerNumber)
+      }
+    } else {
+      var parsedData = parseFloat(data);
+      if (!isNaN(parsedData)) {
+        playerNumber = parsedData;
+        scoreboard.innerHTML += "Player number: " + playerNumber + "\n";
+      }
+    }
+  };
+
+  window.onkeydown = function (e) {
+    var direction;
+    if (e.key === "ArrowUp") {
+      direction = "up";
+    } else if (e.key === "ArrowDown") {
+      direction = "down";
+    } else if (e.key === "ArrowLeft") {
+      direction = "left";
+    } else if (e.key === "ArrowRight") {
+      direction = "right";
+    } else if (e.key === " ") {
+      direction = "space";
+    }
+
+    socket.send(
+      JSON.stringify({ direction: direction, playerNumber: playerNumber })
+    );
+  };
+
+  window.addEventListener("resize", () => {
+    scaleFactorX = window.innerWidth / 500;
+    scaleFactorY = window.innerHeight / 500;
+
+    // Update positions of all elements
+    initSizesPositions();
+  });
+
+  window.addEventListener("load", () => {
+    scaleFactorX = window.innerWidth / 500;
+    scaleFactorY = window.innerHeight / 500;
+
+    // Update positions of all elements
+    initSizesPositions();
+  });
+
+
+  function send() {
+    socket.send(input.value);
+    input.value = "";
+  }
+
+  function step(timestamp, data) {
+    var ball = document.getElementById("ball");
+    var ballPosition = data.ballPosition;
+    var barPlayer1 = document.getElementById("barPlayer1");
+    var barPlayer2 = document.getElementById("barPlayer2");
+
+    setPosition(ball, ballPosition.X, ballPosition.Y);
+    setPosition(
+      barPlayer1,
+      0,
+      data.player1Position  
+    );
+    setPosition(
+      barPlayer2,
+      490,
+      data.player2Position
+    );
+
+  }
+  function setSize(element, logicalWidth, logicalHeight) {
+    const screenWidth = logicalWidth * scaleFactorX;
+    const screenHeight = logicalHeight * scaleFactorY;
+
+    element.style.width = `${screenWidth}px`;
+    element.style.height = `${screenHeight}px`;
+  }
+  function setPosition(element, logicalX, logicalY) {
+    const screenX = logicalX * scaleFactorX;
+    const screenY = logicalY * scaleFactorY;
+    element.style.transform = `translate(${screenX}px, ${screenY}px)`;
+  }
+  function initSizesPositions() {
+    setSize(ball, 10, 10 );
+    setSize(barPlayer1, 10, 100);
+    setSize(barPlayer2, 10, 100);
+    setSize(background, 500, 500);
+    setPosition(ball, 225, 225);
+    setPosition(barPlayer1, 0, 200);
+    setPosition(barPlayer2, 490, 200);
+    setPosition(scoreboard, 225, 100);
+  }
+  function playerNumberText(playerNumber) {
+    return "Player number: " + playerNumber + "<br>" + "Press SPACE to play"
+  }
+</script>
+
+
