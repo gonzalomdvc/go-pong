@@ -115,16 +115,16 @@ func main() {
 	})
 
 	http.HandleFunc("/pvp", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "pong.html")
+		http.ServeFile(w, r, "html/pong.html")
 	})
 	http.HandleFunc("/pvai", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "pong.html")
+		http.ServeFile(w, r, "html/pong.html")
 	})
 	http.HandleFunc("/aivai", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "pong.html")
+		http.ServeFile(w, r, "html/pong.html")
 	})
 	http.HandleFunc("/menu", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "menu.html")
+		http.ServeFile(w, r, "html/menu.html")
 	})
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
